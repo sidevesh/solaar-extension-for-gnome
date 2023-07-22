@@ -9,10 +9,10 @@ class SolaarGnomeExtension {
       <node>
         <interface name="io.github.pwr_solaar.solaar.gnome">
           <method name="ActiveWindow">
-            <arg type="s" direction="out" name="win"/>
+            <arg type="s" direction="out" name="window_wm_class"/>
           </method>
           <method name="PointerOverWindow">
-            <arg type="s" direction="out" name="win"/>
+            <arg type="s" direction="out" name="window_wm_class"/>
           </method>
         </interface>
       </node>
