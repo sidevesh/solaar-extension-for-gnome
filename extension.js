@@ -7,7 +7,7 @@ class SolaarGnomeExtension {
   enable() {
     const dbus_object = `
       <node>
-        <interface name="io.github.pwr_solaar.solaar.gnome">
+        <interface name="io.github.pwr_solaar.solaar">
           <method name="ActiveWindow">
             <arg type="s" direction="out" name="window_wm_class"/>
           </method>
@@ -18,7 +18,7 @@ class SolaarGnomeExtension {
       </node>
     `;
     this.dbus = Gio.DBusExportedObject.wrapJSObject(dbus_object, this);
-    this.dbus.export(Gio.DBus.session, '/io/github/pwr_solaar/solaar/gnome');
+    this.dbus.export(Gio.DBus.session, '/io/github/pwr_solaar/solaar');
   }
 
   disable() {
