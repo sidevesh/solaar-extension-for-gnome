@@ -1,0 +1,14 @@
+{
+  "name": "Solaar Gnome extension",
+  "description": "Allow Solaar to support certain features on Gnome desktop",
+  "shell-version" : [
+    "40",
+    "41",
+    "42",
+    "43",
+    "44"
+  ],
+  "url" : "https://github.com/sidevesh/solaar-gnome-extension",
+  "uuid": "me@sidevesh.com",
+  "version" : 1
+}
