@@ -1,0 +1,14 @@
+{
+  "name": "Solaar extension",
+  "description": "Allow Solaar to support certain features on non X11 systems",
+  "shell-version" : [
+    "40",
+    "41",
+    "42",
+    "43",
+    "44"
+  ],
+  "url" : "https://github.com/sidevesh/solaar-extension-for-gnome",
+  "uuid": "solaar-extension@sidevesh",
+  "version" : 1
+}

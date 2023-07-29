@@ -1,6 +1,6 @@
 const { Gio } = imports.gi;
 
-class SolaarGnomeExtension {
+class SolaarExtension {
   constructor() {
   }
 
@@ -60,5 +60,5 @@ class SolaarGnomeExtension {
 }
 
 function init() {
-  return new SolaarGnomeExtension();
+  return new SolaarExtension();
 }

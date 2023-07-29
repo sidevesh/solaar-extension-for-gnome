@@ -18,14 +18,14 @@ jobs:
 
       - name: Create zip
         run: |
-          cd solaar-gnome-extension@sidevesh
-          zip -r ../solaar-gnome-extension@sidevesh.zip *
+          cd solaar-extension@sidevesh
+          zip -r ../solaar-extension@sidevesh.zip *
           cd ..
 
       - name: Upload package
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: ./solaar-gnome-extension@sidevesh.zip
-          asset_name: solaar-gnome-extension@sidevesh.zip
+          file: ./solaar-extension@sidevesh.zip
+          asset_name: solaar-extension@sidevesh.zip
           tag: ${{ github.ref }}
