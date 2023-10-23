@@ -1,6 +1,6 @@
-const { Gio } = imports.gi;
+import Gio from 'gi://Gio';
 
-class SolaarExtension {
+export default class SolaarExtension {
   constructor() {
   }
 
@@ -57,8 +57,4 @@ class SolaarExtension {
       return '';
     }
   }
-}
-
-function init() {
-  return new SolaarExtension();
 }
