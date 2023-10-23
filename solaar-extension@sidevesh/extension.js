@@ -1,9 +1,6 @@
 import Gio from 'gi://Gio';
 
 export default class SolaarExtension {
-  constructor() {
-  }
-
   enable() {
     const dbus_object = `
       <node>
