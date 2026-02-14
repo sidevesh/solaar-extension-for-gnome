@@ -1,6 +1,6 @@
 {
   "description": "Allow Solaar to support certain features on non X11 systems",
-  "name": "Solaar extension",
+  "name": "Solaar Extension",
   "shell-version": [
     "45",
     "46",
