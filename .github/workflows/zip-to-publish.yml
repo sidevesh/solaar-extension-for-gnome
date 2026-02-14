@@ -9,7 +9,7 @@ on:
       - created
 
 jobs:
-  build-deb:
+  package-zip:
     name: Create zip for publishing
     runs-on: ubuntu-latest
     steps:
