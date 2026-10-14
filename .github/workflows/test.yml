@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: GNOME ${{ matrix.gnome }}
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { gnome: 45, image: 'fedora:39' }
+          - { gnome: 46, image: 'ubuntu:24.04' }
+          - { gnome: 47, image: 'fedora:41' }
+          - { gnome: 48, image: 'fedora:42' }
+          - { gnome: 49, image: 'fedora:43' }
+          - { gnome: 50, image: 'fedora:44' }
+          - { gnome: 51, image: 'archlinux:latest' }
+    steps:
+      - name: Set up Git repository
+        uses: actions/checkout@v4
+
+      - name: Run tests
+        run: tests/container-entrypoint.sh

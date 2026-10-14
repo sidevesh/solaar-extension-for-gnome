@@ -1,0 +1,14 @@
+{
+  "description": "Test-only helper for the Solaar Extension test suite. Not for installation.",
+  "name": "Solaar Extension Test Helper",
+  "shell-version": [
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51"
+  ],
+  "uuid": "solaar-test-helper@sidevesh"
+}
