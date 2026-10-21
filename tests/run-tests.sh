@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Runs the test suite in a disposable headless GNOME Shell with its own D-Bus
 # session, home directory and settings, so it never touches the desktop you're
-# logged into. Needs gnome-shell, gjs and GTK 4.
+# logged into. Needs gnome-shell, gjs, GTK 4 and Python 3.
 #
 # Set SOLAAR_TEST_KEEP_LOGS=1 to keep the shell and window logs afterwards.
 
