@@ -1,5 +1,6 @@
 import Gio from 'gi://Gio';
 import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
+import { KeyboardBacklightOsd } from './keyboardBacklight.js';
 
 const SolaarIface = `
   <node>
@@ -18,9 +19,12 @@ export default class SolaarExtension extends Extension {
   enable() {
     this._dbus = Gio.DBusExportedObject.wrapJSObject(SolaarIface, this);
     this._dbus.export(Gio.DBus.session, '/io/github/pwr_solaar/solaar');
+    this._keyboardBacklight = new KeyboardBacklightOsd();
   }
 
   disable() {
+    this._keyboardBacklight.destroy();
+    this._keyboardBacklight = null;
     this._dbus.flush();
     this._dbus.unexport();
     this._dbus = null;

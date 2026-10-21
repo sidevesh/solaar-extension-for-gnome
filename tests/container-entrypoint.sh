@@ -9,13 +9,13 @@ tests_dir=$(cd "$(dirname "$0")" && pwd)
 . /etc/os-release
 case $ID in
   arch)
-    pacman -Syu --noconfirm --needed gnome-shell gtk4 mesa ;;
+    pacman -Syu --noconfirm --needed gnome-shell gtk4 mesa python ;;
   fedora)
-    dnf install -y gnome-shell gtk4 mesa-dri-drivers dbus-daemon shadow-utils util-linux ;;
+    dnf install -y gnome-shell gtk4 mesa-dri-drivers dbus-daemon shadow-utils util-linux python3 ;;
   ubuntu | debian)
     apt-get update
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      gnome-shell gjs gir1.2-gtk-4.0 dbus libgl1-mesa-dri ;;
+      gnome-shell gjs gir1.2-gtk-4.0 dbus libgl1-mesa-dri python3 ;;
   *)
     echo "Unsupported distribution: $ID" >&2
     exit 1 ;;
