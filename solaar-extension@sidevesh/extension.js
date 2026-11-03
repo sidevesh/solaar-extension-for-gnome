@@ -19,15 +19,30 @@ export default class SolaarExtension extends Extension {
   enable() {
     this._dbus = Gio.DBusExportedObject.wrapJSObject(SolaarIface, this);
     this._dbus.export(Gio.DBus.session, '/io/github/pwr_solaar/solaar');
-    this._keyboardBacklight = new KeyboardBacklightOsd();
+
+    this._settings = this.getSettings();
+    this._settingsChangedId = this._settings.connect('changed::keyboard-brightness-osd',
+      () => this._updateKeyboardBacklight());
+    this._updateKeyboardBacklight();
   }
 
   disable() {
-    this._keyboardBacklight.destroy();
+    this._settings.disconnect(this._settingsChangedId);
+    this._settings = null;
+    this._keyboardBacklight?.destroy();
     this._keyboardBacklight = null;
     this._dbus.flush();
     this._dbus.unexport();
     this._dbus = null;
+  }
+
+  _updateKeyboardBacklight() {
+    if (this._settings.get_boolean('keyboard-brightness-osd')) {
+      this._keyboardBacklight ??= new KeyboardBacklightOsd();
+    } else {
+      this._keyboardBacklight?.destroy();
+      this._keyboardBacklight = null;
+    }
   }
 
   ActiveWindow() {

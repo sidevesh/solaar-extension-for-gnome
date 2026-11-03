@@ -129,7 +129,7 @@ async function expectPointerOverWindow(x, y, expected, where) {
 }
 
 // The fake receiver's output: requests the extension sent and finished commands.
-const receiver = { log: [], stdin: null };
+const receiver = { log: [], stdin: null, path: null };
 
 async function startFakeReceiver() {
   const proc = Gio.Subprocess.new(['python3', GLib.build_filenamev([TESTS_DIR, 'fake-receiver.py'])],
@@ -137,13 +137,38 @@ async function startFakeReceiver() {
   subprocesses.push(proc);
   receiver.stdin = proc.get_stdin_pipe();
   const stdout = new Gio.DataInputStream({ base_stream: proc.get_stdout_pipe() });
-  const [path] = await stdout.read_line_async(GLib.PRIORITY_DEFAULT, null);
+  [receiver.path] = await stdout.read_line_async(GLib.PRIORITY_DEFAULT, null);
   (async () => {
     for (let line; ([line] = await stdout.read_line_async(GLib.PRIORITY_DEFAULT, null), line !== null);)
       receiver.log.push(JSON.parse(line));
   })().catch(e => print(`# fake receiver: ${e}`));
-  // The node isn't a Logitech hidraw device, so it's added by hand.
-  await shellEval(`await ${STATE_OBJ}._keyboardBacklight.addHidraw(${JSON.stringify(path)});`);
+  await addFakeReceiver();
+}
+
+// The node isn't a Logitech hidraw device, so it's added by hand.
+const addFakeReceiver = () =>
+  shellEval(`await ${STATE_OBJ}._keyboardBacklight.addHidraw(${JSON.stringify(receiver.path)});`);
+
+// The test bus can't start services, so the preferences service is started the
+// way its D-Bus service file says.
+function startExtensionsService() {
+  const dataDirs = (GLib.getenv('XDG_DATA_DIRS') || '/usr/local/share:/usr/share').split(':');
+  const file = dataDirs.map(dir => GLib.build_filenamev([dir, 'dbus-1', 'services', 'org.gnome.Shell.Extensions.service']))
+    .find(path => GLib.file_test(path, GLib.FileTest.EXISTS));
+  if (!file)
+    throw new Error('The org.gnome.Shell.Extensions D-Bus service file is missing');
+  const keyFile = new GLib.KeyFile();
+  keyFile.load_from_file(file, GLib.KeyFileFlags.NONE);
+  const [, argv] = GLib.shell_parse_argv(keyFile.get_string('D-BUS Service', 'Exec'));
+  spawn(argv, GLib.build_filenamev([GLib.getenv('SOLAAR_TEST_LOG_DIR'), 'prefs.log']),
+    { WAYLAND_DISPLAY, GDK_BACKEND: 'wayland' });
+}
+
+// Changes the setting as the preferences window does, through GSettings.
+async function setKeyboardOsdEnabled(enabled) {
+  await shellEval(`${STATE_OBJ}.getSettings().set_boolean('keyboard-brightness-osd', ${enabled});`);
+  await waitFor(`the keyboard brightness OSD to turn ${enabled ? 'on' : 'off'}`,
+    () => shellEval(`return !!${STATE_OBJ}._keyboardBacklight === ${enabled};`));
 }
 
 async function receiverCommand(command) {
@@ -279,7 +304,39 @@ const tests = [
     }
   }],
 
+  ['keyboard brightness OSD is off by default', async () => {
+    const state = await shellEval(`
+      const ext = ${STATE_OBJ};
+      return { setting: ext.getSettings().get_boolean('keyboard-brightness-osd'), running: !!ext._keyboardBacklight };`);
+    if (state.setting || state.running)
+      throw new Error(`Expected the OSD off, got ${JSON.stringify(state)}`);
+  }],
+
+  ['opens the preferences window', async () => {
+    startExtensionsService();
+    await waitFor('the preferences service to start', async () => {
+      const [owned] = (await Gio.DBus.session.call('org.freedesktop.DBus', '/org/freedesktop/DBus',
+        'org.freedesktop.DBus', 'NameHasOwner', new GLib.Variant('(s)', ['org.gnome.Shell.Extensions']),
+        new GLib.VariantType('(b)'), Gio.DBusCallFlags.NONE, 5000, null)).deep_unpack();
+      return owned;
+    });
+    await callShell('/org/gnome/Shell', 'org.gnome.Shell.Extensions', 'OpenExtensionPrefs',
+      new GLib.Variant('(ssa{sv})', [UUID, '', {}]), '()');
+    await waitFor('the preferences window to map', () => shellEval(`
+      const w = ${findWindow('org.gnome.Shell.Extensions')};
+      return !!w && w.get_compositor_private().visible && w.get_frame_rect().width > 0;`), 30000);
+    // A failing prefs.js still opens the window, with an error page in it.
+    const [, log] = GLib.file_get_contents(GLib.build_filenamev([GLib.getenv('SOLAAR_TEST_LOG_DIR'), 'prefs.log']));
+    const error = new TextDecoder().decode(log).split('\n').find(line => line.includes('JS ERROR'));
+    if (error)
+      throw new Error(`The preferences failed to load: ${error}`);
+    await shellEval(`${findWindow('org.gnome.Shell.Extensions')}.delete(global.get_current_time());`);
+    await waitFor('the preferences window to close', async () => !await shellEval(`return !!${findWindow('org.gnome.Shell.Extensions')};`));
+    await activate(APP_B);
+  }],
+
   ['finds the keyboard backlight behind a receiver', async () => {
+    await setKeyboardOsdEnabled(true);
     await startFakeReceiver();
     await waitFor('the extension to ask keyboard 2 for its backlight', () => askedForBacklight(2));
   }],
@@ -334,6 +391,24 @@ const tests = [
     const others = requests().filter(([, , , address]) => (address & 0x0f) !== SOFTWARE_ID);
     if (requests().length === 0 || others.length > 0)
       throw new Error(`Expected only software ID ${SOFTWARE_ID}, got ${JSON.stringify(others)}`);
+  }],
+
+  ['turning the setting off stops the keyboard brightness OSD', async () => {
+    await setKeyboardOsdEnabled(false);
+    try {
+      await clearOsds();
+      await sendBacklightLevel(2, 6);
+      await sleep(500);
+      await expectOsds('OSDs while turned off', []);
+    } finally {
+      await setKeyboardOsdEnabled(true);
+    }
+    const since = requests().length;
+    await addFakeReceiver();
+    await waitFor('the extension to ask keyboard 2 for its backlight again', () => askedForBacklight(2, since));
+    await clearOsds();
+    await sendBacklightLevel(2, 1);
+    await expectOsds('OSDs after turning it back on', [keyboardOsd(1 / (KEYBOARD_LEVELS - 1))]);
   }],
 
   ['disable stops the keyboard brightness OSD', async () => {

@@ -32,7 +32,9 @@ mkdir -p "$HOME" "$XDG_CONFIG_HOME/glib-2.0/settings" "$XDG_CACHE_HOME" "$XDG_ST
   "$XDG_DATA_HOME/gnome-shell/extensions" "$XDG_RUNTIME_DIR" "$SOLAAR_TEST_LOG_DIR"
 chmod 700 "$XDG_RUNTIME_DIR"
 
-ln -s "$repo/solaar-extension@sidevesh" "$XDG_DATA_HOME/gnome-shell/extensions/"
+# A copy, so its compiled settings schema stays out of the repository.
+cp -r "$repo/solaar-extension@sidevesh" "$XDG_DATA_HOME/gnome-shell/extensions/"
+glib-compile-schemas "$XDG_DATA_HOME/gnome-shell/extensions/solaar-extension@sidevesh/schemas"
 ln -s "$repo/tests/helper/solaar-test-helper@sidevesh" "$XDG_DATA_HOME/gnome-shell/extensions/"
 
 export GSETTINGS_BACKEND=keyfile
