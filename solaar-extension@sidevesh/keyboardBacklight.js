@@ -89,7 +89,9 @@ export class KeyboardBacklightOsd {
 
     this._udevClient = new GUdev.Client({ subsystems: ['hidraw'] });
     this._ueventId = this._udevClient.connect('uevent', (client, action, device) => {
-      if (action === 'add')
+      // A change can be the device becoming readable, when its access
+      // rights are set after it was added.
+      if (action === 'add' || action === 'change')
         this._addUdevDevice(device);
       else if (action === 'remove')
         this._removeHidraw(device.get_device_file());
