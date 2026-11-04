@@ -1,5 +1,5 @@
 {
-  "description": "Allow Solaar to support certain features on non X11 systems, and optionally show GNOME's keyboard brightness OSD when a Logitech keyboard changes its backlight level",
+  "description": "Allow Solaar to support certain features on non X11 systems, and show GNOME's keyboard brightness OSD when a Logitech keyboard changes its backlight level (can be turned off in the preferences)",
   "name": "Solaar Extension",
   "settings-schema": "org.gnome.shell.extensions.solaar-extension",
   "shell-version": [
