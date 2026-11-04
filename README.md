@@ -9,7 +9,7 @@ For more information, visit the [Solaar GitHub repository](https://github.com/pw
 ## Features
 
 - **Process and MouseProcess rule conditions on Wayland.** Solaar asks the extension which window is focused and which window is under the pointer, which it can't find out by itself on Wayland.
-- **Keyboard brightness OSD (off by default).** When a Logitech keyboard changes its backlight level, including with its own backlight keys, GNOME's keyboard brightness OSD shows the new level, as it does for laptop keyboards. No Solaar rules are needed. Turn it on in the extension's preferences.
+- **Keyboard brightness OSD (on by default).** When a Logitech keyboard changes its backlight level, including with its own backlight keys, GNOME's keyboard brightness OSD shows the new level, as it does for laptop keyboards. No Solaar rules are needed. It can be turned off in the extension's preferences.
 
   The keyboard announces the change in a HID++ notification, which every program reading the receiver (or the Bluetooth keyboard) gets. The extension reads it next to Solaar, with the access Solaar's udev rules already give, and asks each device once where its backlight feature (0x1982) is. That request uses its own HID++ software ID, so Solaar ignores the reply. The notification carries the new level and the keyboard's number of levels; a backlight that is only on or off, or that doesn't report its levels, shows as a full or empty bar, as GNOME does for laptop keyboards like that.
 

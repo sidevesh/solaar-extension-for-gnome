@@ -304,12 +304,12 @@ const tests = [
     }
   }],
 
-  ['keyboard brightness OSD is off by default', async () => {
+  ['keyboard brightness OSD is on by default', async () => {
     const state = await shellEval(`
       const ext = ${STATE_OBJ};
       return { setting: ext.getSettings().get_boolean('keyboard-brightness-osd'), running: !!ext._keyboardBacklight };`);
-    if (state.setting || state.running)
-      throw new Error(`Expected the OSD off, got ${JSON.stringify(state)}`);
+    if (!state.setting || !state.running)
+      throw new Error(`Expected the OSD on, got ${JSON.stringify(state)}`);
   }],
 
   ['opens the preferences window', async () => {

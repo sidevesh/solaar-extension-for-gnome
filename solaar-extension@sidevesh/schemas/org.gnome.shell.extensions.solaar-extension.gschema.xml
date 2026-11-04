@@ -2,7 +2,7 @@
 <schemalist>
   <schema id="org.gnome.shell.extensions.solaar-extension" path="/org/gnome/shell/extensions/solaar-extension/">
     <key name="keyboard-brightness-osd" type="b">
-      <default>false</default>
+      <default>true</default>
       <summary>Show the keyboard brightness OSD</summary>
       <description>Show GNOME's keyboard brightness OSD when a Logitech keyboard changes its backlight level.</description>
     </key>
