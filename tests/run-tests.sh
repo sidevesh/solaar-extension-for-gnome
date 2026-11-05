@@ -36,6 +36,10 @@ chmod 700 "$XDG_RUNTIME_DIR"
 cp -r "$repo/solaar-extension@sidevesh" "$XDG_DATA_HOME/gnome-shell/extensions/"
 glib-compile-schemas "$XDG_DATA_HOME/gnome-shell/extensions/solaar-extension@sidevesh/schemas"
 ln -s "$repo/tests/helper/solaar-test-helper@sidevesh" "$XDG_DATA_HOME/gnome-shell/extensions/"
+# GNOME Shell downloads the version published on extensions.gnome.org when
+# its number differs from the one under test, unpacks it here and installs it
+# over the copy above. A file in place of the directory stops that.
+touch "$XDG_DATA_HOME/gnome-shell/extension-updates"
 
 export GSETTINGS_BACKEND=keyfile
 cat > "$XDG_CONFIG_HOME/glib-2.0/settings/keyfile" <<'EOF'
