@@ -35,8 +35,6 @@ const HIDPP20_ERROR = 0xff;
 
 const REQUEST_TIMEOUT_MS = 2000;
 
-Gio._promisify(Gio.File.prototype, 'load_contents_async');
-
 export class KeyboardBacklightOsd {
   constructor() {
     this._nodes = new Map();
@@ -46,12 +44,10 @@ export class KeyboardBacklightOsd {
 
   destroy() {
     this._cancellable.cancel();
-    if (this._udevClient) {
-      this._udevClient.disconnect(this._ueventId);
-      this._udevClient = null;
-    }
+    this._udevClient?.disconnect(this._ueventId);
+    this._udevClient = null;
     for (const node of this._nodes.values())
-      node.close();
+      node.destroy();
     this._nodes.clear();
   }
 
@@ -72,7 +68,7 @@ export class KeyboardBacklightOsd {
   }
 
   _removeHidraw(path) {
-    this._nodes.get(path)?.close();
+    this._nodes.get(path)?.destroy();
     this._nodes.delete(path);
   }
 
@@ -141,14 +137,15 @@ class HidppNode {
       this._probe(number).catch(logError);
   }
 
-  close() {
-    if (this._closed)
-      return;
-    this._closed = true;
+  // Called from KeyboardBacklightOsd.destroy(), so on disable(), and when the
+  // device goes away.
+  destroy() {
+    this._destroyed = true;
     this._cancellable.cancel();
-    this._pending?.resolve(null);
     this._removeTimeout();
-    this._channel.shutdown(false);
+    this._pending?.resolve(null);
+    this._channel?.shutdown(false);
+    this._channel = null;
   }
 
   _removeTimeout() {
@@ -251,7 +248,7 @@ class HidppNode {
       if (!feature)
         return;
 
-      if (!this._closed)
+      if (!this._destroyed)
         this._backlights.set(number, feature[4]);
     } finally {
       this._probing.delete(number);
@@ -262,7 +259,7 @@ class HidppNode {
   // error or no answer.
   _request(number, featureIndex, functionId, params = []) {
     const send = () => new Promise(resolve => {
-      if (this._closed) {
+      if (this._destroyed) {
         resolve(null);
         return;
       }
@@ -336,7 +333,15 @@ async function loadUnixStreams() {
 async function hasHidppReports(descriptorPath, cancellable) {
   let descriptor;
   try {
-    [descriptor] = await Gio.File.new_for_path(descriptorPath).load_contents_async(cancellable);
+    descriptor = await new Promise((resolve, reject) => {
+      Gio.File.new_for_path(descriptorPath).load_contents_async(cancellable, (file, result) => {
+        try {
+          resolve(file.load_contents_finish(result)[1]);
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
   } catch {
     return false;
   }

@@ -29,6 +29,7 @@ export default class SolaarExtension extends Extension {
   disable() {
     this._settings.disconnect(this._settingsChangedId);
     this._settings = null;
+    // Also closes the hidraw nodes and removes their request timeouts.
     this._keyboardBacklight?.destroy();
     this._keyboardBacklight = null;
     this._dbus.flush();
