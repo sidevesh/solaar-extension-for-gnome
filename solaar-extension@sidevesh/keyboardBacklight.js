@@ -35,6 +35,8 @@ const HIDPP20_ERROR = 0xff;
 
 const REQUEST_TIMEOUT_MS = 2000;
 
+Gio._promisify(Gio.File.prototype, 'load_contents_async');
+
 export class KeyboardBacklightOsd {
   constructor() {
     this._nodes = new Map();
@@ -92,15 +94,15 @@ export class KeyboardBacklightOsd {
       // A change can be the device becoming readable, when its access
       // rights are set after it was added.
       if (action === 'add' || action === 'change')
-        this._addUdevDevice(device);
+        this._addUdevDevice(device).catch(logError);
       else if (action === 'remove')
         this._removeHidraw(device.get_device_file());
     });
     for (const device of this._udevClient.query_by_subsystem('hidraw'))
-      this._addUdevDevice(device);
+      this._addUdevDevice(device).catch(logError);
   }
 
-  _addUdevDevice(device) {
+  async _addUdevDevice(device) {
     const hid = device.get_parent_with_subsystem('hid', null);
     const path = device.get_device_file();
     if (!hid || !path)
@@ -108,8 +110,11 @@ export class KeyboardBacklightOsd {
 
     // HID_ID is bus:vendor:product in hex.
     const vendor = parseInt((hid.get_property('HID_ID') ?? '').split(':')[1], 16);
-    if (vendor === LOGITECH_VENDOR_ID && hasHidppReports(`${hid.get_sysfs_path()}/report_descriptor`))
-      this.addHidraw(path).catch(logError);
+    if (vendor !== LOGITECH_VENDOR_ID)
+      return;
+    const descriptorPath = `${hid.get_sysfs_path()}/report_descriptor`;
+    if (await hasHidppReports(descriptorPath, this._cancellable))
+      await this.addHidraw(path);
   }
 }
 
@@ -125,6 +130,7 @@ class HidppNode {
     this._buffer = [];
     this._queue = Promise.resolve();
     this._pending = null;
+    this._timeoutId = 0;
     // Device number to the index of its backlight feature, 0 for a device
     // without one. Missing until the device answered.
     this._backlights = new Map();
@@ -141,7 +147,15 @@ class HidppNode {
     this._closed = true;
     this._cancellable.cancel();
     this._pending?.resolve(null);
+    this._removeTimeout();
     this._channel.shutdown(false);
+  }
+
+  _removeTimeout() {
+    if (this._timeoutId) {
+      GLib.Source.remove(this._timeoutId);
+      this._timeoutId = 0;
+    }
   }
 
   _read() {
@@ -254,14 +268,16 @@ class HidppNode {
       }
 
       const address = (functionId << 4) | SOFTWARE_ID;
-      const timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REQUEST_TIMEOUT_MS, () => {
-        this._pending.resolve(null);
+      this._removeTimeout();
+      this._timeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, REQUEST_TIMEOUT_MS, () => {
+        this._timeoutId = 0;
+        this._pending?.resolve(null);
         return GLib.SOURCE_REMOVE;
       });
       this._pending = {
         number, featureIndex, address,
         resolve: reply => {
-          GLib.Source.remove(timeoutId);
+          this._removeTimeout();
           this._pending = null;
           resolve(reply);
         },
@@ -317,10 +333,10 @@ async function loadUnixStreams() {
 }
 
 // HID++ nodes have a vendor-defined usage page with the long report.
-function hasHidppReports(descriptorPath) {
+async function hasHidppReports(descriptorPath, cancellable) {
   let descriptor;
   try {
-    [, descriptor] = GLib.file_get_contents(descriptorPath);
+    [descriptor] = await Gio.File.new_for_path(descriptorPath).load_contents_async(cancellable);
   } catch {
     return false;
   }
