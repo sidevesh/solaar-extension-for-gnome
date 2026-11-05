@@ -137,15 +137,11 @@ class HidppNode {
       this._probe(number).catch(logError);
   }
 
-  // Called from KeyboardBacklightOsd.destroy(), so on disable(), and when the
-  // device goes away.
   destroy() {
-    this._destroyed = true;
     this._cancellable.cancel();
     this._removeTimeout();
     this._pending?.resolve(null);
-    this._channel?.shutdown(false);
-    this._channel = null;
+    this._channel.shutdown(false);
   }
 
   _removeTimeout() {
@@ -248,7 +244,7 @@ class HidppNode {
       if (!feature)
         return;
 
-      if (!this._destroyed)
+      if (!this._cancellable.is_cancelled())
         this._backlights.set(number, feature[4]);
     } finally {
       this._probing.delete(number);
@@ -259,7 +255,7 @@ class HidppNode {
   // error or no answer.
   _request(number, featureIndex, functionId, params = []) {
     const send = () => new Promise(resolve => {
-      if (this._destroyed) {
+      if (this._cancellable.is_cancelled()) {
         resolve(null);
         return;
       }
