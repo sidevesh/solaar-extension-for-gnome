@@ -370,6 +370,20 @@ const tests = [
     await expectOsds('OSDs', [keyboardOsd(4 / (KEYBOARD_LEVELS - 1))]);
   }],
 
+  ['ignores reports that are not HID++', async () => {
+    await clearOsds();
+    const since = requests().length;
+    // Mouse motion from a receiver, with bytes that look like the start of a
+    // HID++ notification from devices 9 and 10, which don't exist.
+    await receiverCommand(`send ${hex([0x20, 0x01, 0x02, 0x10, 0x09, 0x05, 0x00])}`);
+    await receiverCommand(`send ${hex([0x20, 0x00, 0x11, 0x0a, 0x05, 0x00])}`);
+    await sendBacklightLevel(2, 3);
+    await expectOsds('OSDs', [keyboardOsd(3 / (KEYBOARD_LEVELS - 1))]);
+    const strays = requests().slice(since).filter(([, number]) => number > 6 && number !== 0xff);
+    if (strays.length)
+      throw new Error(`Sent requests to devices that don't exist: ${JSON.stringify(strays)}`);
+  }],
+
   ['finds a keyboard when it wakes up', async () => {
     await clearOsds();
     const since = requests().length;

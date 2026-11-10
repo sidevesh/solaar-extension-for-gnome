@@ -15,7 +15,8 @@ import sys
 import tty
 
 BACKLIGHT2 = 0x1982
-LENGTHS = {0x10: 7, 0x11: 20, 0x12: 64}
+# 0x20 is a receiver's mouse motion report, not HID++.
+LENGTHS = {0x10: 7, 0x11: 20, 0x12: 64, 0x20: 15}
 
 # Device number: features as {feature: (index, version)}. 1 is a mouse, 2 an
 # awake keyboard, 3 a sleeping keyboard and 4 an older keyboard.

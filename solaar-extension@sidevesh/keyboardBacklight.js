@@ -123,7 +123,6 @@ class HidppNode {
     this._input = new streams.InputStream({ fd, close_fd: false });
     this._output = new streams.OutputStream({ fd, close_fd: false });
     this._cancellable = new Gio.Cancellable();
-    this._buffer = [];
     this._queue = Promise.resolve();
     this._pending = null;
     this._timeoutId = 0;
@@ -166,19 +165,17 @@ class HidppNode {
         return;
       }
 
-      // hidraw returns one report per read, but don't rely on it.
-      this._buffer.push(...bytes.toArray());
-      while (this._buffer.length > 0) {
-        const length = REPORT_LENGTHS.get(this._buffer[0]);
-        if (!length) {
-          this._buffer.shift();
-          continue;
-        }
-        if (this._buffer.length < length)
+      // Receivers also send reports that aren't HID++, such as mouse motion.
+      // Their bytes mean something else, so a read that doesn't start with a
+      // HID++ report ID is skipped whole rather than searched for one.
+      const data = bytes.toArray();
+      for (let start = 0, length; start < data.length; start += length) {
+        length = REPORT_LENGTHS.get(data[start]);
+        if (!length || start + length > data.length)
           break;
         // Keep reading even if one report can't be handled.
         try {
-          this._handleReport(this._buffer.splice(0, length));
+          this._handleReport(data.slice(start, start + length));
         } catch (e) {
           logError(e, `Solaar Extension: ${this._path}`);
         }
@@ -189,6 +186,8 @@ class HidppNode {
 
   _handleReport(report) {
     const [, number, subId, address] = report;
+    if (!DEVICE_NUMBERS.includes(number))
+      return;
 
     if (subId === HIDPP10_ERROR || subId === HIDPP20_ERROR) {
       // The failed request's feature index and function follow the error ID.
